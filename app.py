@@ -446,6 +446,33 @@ def tab_advanced_analytics(user_vec):
     return fig_radar, fig_embed, stats
 
 # ---------------------------
+# NAVIGATION FUNCTIONS
+# ---------------------------
+
+TAB_LABELS = {
+    0: "Next ➡ Cold Start",
+    1: "Next ➡ Feed Ranking", 
+    2: "Next ➡ Analytics",
+    3: "🎉 Complete!"
+}
+
+MAX_TAB = 3
+
+def go_next(current_tab):
+    new_tab = min(current_tab + 1, MAX_TAB)
+    return new_tab
+
+def go_prev(current_tab):
+    new_tab = max(current_tab - 1, 0)
+    return new_tab
+
+def update_next_label(current_tab):
+    return TAB_LABELS.get(current_tab, "Next ➡")
+
+def update_prev_visibility(current_tab):
+    return gr.update(visible=current_tab > 0)
+
+# ---------------------------
 # ENHANCED GRADIO UI
 # ---------------------------
 
@@ -453,10 +480,16 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 📸 Advanced Instagram Recommendation Algorithm Simulator")
     gr.Markdown("### Explore the complex mechanics behind social media content ranking")
 
-    with gr.Tabs():
+    # Navigation state
+    current_tab = gr.State(0)
 
+    # Navigation buttons (moved outside tabs)
+
+    # Main tabs container
+    tabs = gr.Tabs(selected=0)
+    with tabs:
         # ---------------- TAB A: Enhanced Value Model ----------------
-        with gr.Tab("🔢 Value Model"):
+        with gr.Tab("🔢 Value Model", id=0):
             gr.Markdown("### Multi-Signal Content Scoring System")
             
             with gr.Row():
@@ -470,7 +503,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     watch_time = gr.Slider(0, 15, 5, label="👀 Watch Time (seconds)")
                     creator_tier = gr.Dropdown(list(CREATOR_TIERS.keys()), value="Mid", label="👤 Creator Tier")
                     recency = gr.Slider(0.1, 48, 2, label="⏰ Hours Since Posted")
-                    history_match = gr.Slider(0, 1, 0.5, label="🎯 Based on your history %")
+                    history_match = gr.Slider(0, 1, 0.5, label="🎯 User History Match")
 
             value_output = gr.Markdown()
             value_chart = gr.Plot()
@@ -482,7 +515,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
         # ---------------- TAB B: Enhanced Cold Start ----------------
-        with gr.Tab("🧊 Cold Start & Personalization"):
+        with gr.Tab("🧊 Cold Start & Personalization", id=1):
             gr.Markdown("### From Generic → Personalized Content")
             
             with gr.Row():
@@ -493,7 +526,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 with gr.Column():
                     demographics = gr.Dropdown(DEMOGRAPHICS, value="Gen Z", label="👥 Demographics")
                     region = gr.Dropdown(REGIONS, value="North America", label="🌍 Region")
-                    exploration = gr.Slider(0, 0.5, 0.2, label="🎲 New activity level")
+                    exploration = gr.Slider(0, 0.5, 0.2, label="🎲 Exploration Factor")
 
             cold_start_output = gr.Markdown()
             user_vec_state = gr.State()
@@ -505,7 +538,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
         # ---------------- TAB C: Feed Ranking ----------------
-        with gr.Tab("📱 Feed Ranking Simulation"):
+        with gr.Tab("📱 Feed Ranking Simulation", id=2):
             gr.Markdown("### See Your Personalized Feed in Action")
 
             feed_table = gr.Dataframe()
@@ -518,7 +551,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
         # ---------------- TAB D: Advanced Analytics ----------------
-        with gr.Tab("📊 Advanced Analytics"):
+        with gr.Tab("📊 Advanced Analytics", id=3):
             gr.Markdown("### Deep Dive into Algorithm Mechanics")
 
             analytics_stats = gr.Markdown()
@@ -532,6 +565,52 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 inputs=[user_vec_state],
                 outputs=[radar_chart, embedding_chart, analytics_stats]
             )
+
+# ---------------------------
+# TAB NAVIGATION LOGIC (FIXED)
+# ---------------------------
+
+    with gr.Row():
+        nav_prev = gr.Button("⬅ Back", size="sm", visible=False)
+        nav_next = gr.Button("Next ➡ Cold Start", size="sm")
+
+# Next button handler
+    nav_next.click(
+        fn=go_next,
+        inputs=current_tab,
+        outputs=current_tab
+    ).then(
+        fn=lambda tab: gr.update(selected=tab),
+        inputs=current_tab,
+        outputs=tabs
+    ).then(
+        fn=update_next_label,
+        inputs=current_tab,
+        outputs=nav_next
+    ).then(
+        fn=update_prev_visibility,
+        inputs=current_tab,
+        outputs=nav_prev
+    )
+
+    # Previous button handler
+    nav_prev.click(
+        fn=go_prev,
+        inputs=current_tab,
+        outputs=current_tab
+    ).then(
+        fn=lambda tab: gr.update(selected=tab),
+        inputs=current_tab,
+        outputs=tabs
+    ).then(
+        fn=update_next_label,
+        inputs=current_tab,
+        outputs=nav_next
+    ).then(
+        fn=update_prev_visibility,
+        inputs=current_tab,
+        outputs=nav_prev
+    )
 
     # ---------------- Information Panel ----------------
     with gr.Accordion("📚 Algorithm Insights", open=False):
@@ -566,4 +645,4 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 """)
 
 if __name__ == "__main__":
-    demo.launch(share=True, debug=True)
+    demo.launch(debug=True)
